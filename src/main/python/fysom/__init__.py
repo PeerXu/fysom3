@@ -310,6 +310,9 @@ class Fysom(object):
         '''
             Checks to see if the callback is registered before this event can be triggered.
         '''
+        fnname = 'onbefore%s_%s_%s' % (e.event, e.src, e.dst)
+        if hasattr(self, fnname):
+            return getattr(self, fnname)(e)
         fnname = 'onbefore' + e.event
         if hasattr(self, fnname):
             return getattr(self, fnname)(e)
@@ -319,6 +322,9 @@ class Fysom(object):
             Checks to see if the callback is registered for, after this event is completed.
         '''
         for fnname in ['onafter' + e.event, 'on' + e.event]:
+            fnname_with_state = '%s_%s_%s' % (fnname, e.src, e.dst)
+            if hasattr(self, fnname_with_state):
+                return getattr(self, fnname_with_state)(e)
             if hasattr(self, fnname):
                 return getattr(self, fnname)(e)
 

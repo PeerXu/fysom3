@@ -86,6 +86,83 @@ class FysomRepeatedAfterEventCallbackTests(unittest.TestCase):
         self.assertEqual(self.fired, ["first", "second"])
 
 
+class FysomEventWithStateCallbackTests(unittest.TestCase):
+
+    def setUp(self):
+        self.fired_nocalled_to_called = []
+        self.fired_called_to_called = []
+
+        def record_event_nocalled_to_called(event):
+            self.fired_nocalled_to_called.append(event.msg)
+            return 42
+
+        def record_event_called_to_called(event):
+            self.fired_called_to_called.append(event.msg)
+            return 42
+
+        self.fsm = Fysom({
+            'initial': 'notcalled',
+            'events': [
+                {'name': 'multiple', 'src': 'notcalled', 'dst': 'called'},
+                {'name': 'multiple', 'src': 'called', 'dst': 'called'},
+            ],
+            'callbacks': {
+                'onaftermultiple_notcalled_called': record_event_nocalled_to_called,
+                'onaftermultiple_called_called': record_event_called_to_called
+            }
+        })
+
+    def test_should_fire_on_event(self):
+        self.fsm.multiple(msg="first")
+        self.fsm.multiple(msg="second")
+
+        self.assertEqual(self.fired_nocalled_to_called, ["first"])
+        self.assertEqual(self.fired_called_to_called, ["second"])
+
+
+class FysomEventWithStateWithOnbeforeCallbackTests(unittest.TestCase):
+
+    def setUp(self):
+        self.fired_nocalled_to_called = []
+        self.fired_called_to_called = []
+
+        def record_event_nocalled_to_called(event):
+            self.fired_nocalled_to_called.append(event.msg)
+            return 42
+
+        def record_event_called_to_called(event):
+            self.fired_called_to_called.append(event.msg)
+            return 42
+
+        def record_event_before_notcalled_to_called(event):
+            return True
+
+        def record_event_before_called_to_called(event):
+            return False
+
+        self.fsm = Fysom({
+            'initial': 'notcalled',
+            'events': [
+                {'name': 'multiple', 'src': 'notcalled', 'dst': 'called'},
+                {'name': 'multiple', 'src': 'called', 'dst': 'called'},
+            ],
+            'callbacks': {
+                'onbeforemultiple_notcalled_called': record_event_before_notcalled_to_called,
+                'onaftermultiple_notcalled_called': record_event_nocalled_to_called,
+                'onbeforemultiple_called_called': record_event_before_called_to_called,
+                'onaftermultiple_called_called': record_event_called_to_called
+            }
+        })
+
+    def test_onbefore_called_to_called_callbacks_raising_exceptions_should_not_be_eaten(self):
+        self.fsm.multiple(msg="first")
+        with self.assertRaises(Canceled):
+            self.fsm.multiple(msg="second")
+
+        self.assertEqual(self.fired_nocalled_to_called, ["first"])
+        self.assertEqual(self.fired_called_to_called, [])
+
+
 class FysomCallbackTests(unittest.TestCase):
 
     def before_foo(self, e):
